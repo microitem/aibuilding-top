@@ -1,0 +1,21 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Env files — NIKDY do git
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Docker runtime
+*.pid
