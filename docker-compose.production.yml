@@ -8,9 +8,11 @@ services:
     container_name: aibuilding-top
     restart: unless-stopped
     ports:
-      - "3020:80"
+      - "3020:3020"
+    networks:
+      - docker_web
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3020/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -18,3 +20,7 @@ services:
     labels:
       - "project=aibuilding-top"
       - "environment=production"
+
+networks:
+  docker_web:
+    external: true
