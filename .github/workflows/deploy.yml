@@ -79,6 +79,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Validate required secrets
+        run: |
+          missing=""
+          [ -z "${{ secrets.VPS1_SSH_KEY }}" ] && missing="$missing VPS1_SSH_KEY"
+          [ -z "${{ secrets.VPS1_HOST }}" ]    && missing="$missing VPS1_HOST"
+          [ -z "${{ secrets.VPS1_PORT }}" ]    && missing="$missing VPS1_PORT"
+          [ -z "${{ secrets.VPS1_USER }}" ]    && missing="$missing VPS1_USER"
+          if [ -n "$missing" ]; then
+            echo "❌ Chýbajúce secrets:$missing"
+            echo "Nastav ich v: Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          echo "✅ Všetky secrets sú nastavené"
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
