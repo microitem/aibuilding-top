@@ -76,12 +76,32 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS1_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p ${{ secrets.VPS1_PORT }} ${{ secrets.VPS1_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Prepare VPS1 directory and compose file
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              -p ${{ secrets.VPS1_PORT }} \
+              -o StrictHostKeyChecking=no \
+              -o IdentitiesOnly=yes \
+              -o UserKnownHostsFile=/dev/null \
+              ${{ secrets.VPS1_USER }}@${{ secrets.VPS1_HOST }} \
+              'mkdir -p /opt/aibuilding-top'
+          cat docker-compose.production.yml | ssh -i ~/.ssh/deploy_key \
+              -p ${{ secrets.VPS1_PORT }} \
+              -o StrictHostKeyChecking=no \
+              -o IdentitiesOnly=yes \
+              -o UserKnownHostsFile=/dev/null \
+              ${{ secrets.VPS1_USER }}@${{ secrets.VPS1_HOST }} \
+              'cat > /opt/aibuilding-top/docker-compose.production.yml'
 
       - name: Deploy to VPS1
         run: |
@@ -91,33 +111,8 @@ jobs:
               -o IdentitiesOnly=yes \
               -o UserKnownHostsFile=/dev/null \
               ${{ secrets.VPS1_USER }}@${{ secrets.VPS1_HOST }} \
-              'mkdir -p /opt/aibuilding-top && \
-               cat > /opt/aibuilding-top/docker-compose.production.yml << '"'"'COMPOSE_EOF'"'"'
-services:
-  web:
-    image: ghcr.io/microitem/aibuilding-top:latest
-    container_name: aibuilding-top
-    restart: unless-stopped
-    ports:
-      - "3020:3020"
-    networks:
-      - docker_web
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3020/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    labels:
-      - "project=aibuilding-top"
-      - "environment=production"
-
-networks:
-  docker_web:
-    external: true
-COMPOSE_EOF
+              'cd /opt/aibuilding-top && \
                echo "🔄 Pulling latest image from GHCR..." && \
-               cd /opt/aibuilding-top && \
                docker compose -f docker-compose.production.yml pull && \
                echo "🚀 Restarting service..." && \
                docker compose -f docker-compose.production.yml up -d --force-recreate --remove-orphans && \
