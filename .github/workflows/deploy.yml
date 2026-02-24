@@ -84,7 +84,6 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS1_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p ${{ secrets.VPS1_PORT }} ${{ secrets.VPS1_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Prepare VPS1 directory and compose file
         run: |
