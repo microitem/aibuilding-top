@@ -91,8 +91,33 @@ jobs:
               -o IdentitiesOnly=yes \
               -o UserKnownHostsFile=/dev/null \
               ${{ secrets.VPS1_USER }}@${{ secrets.VPS1_HOST }} \
-              'cd /opt/aibuilding-top && \
+              'mkdir -p /opt/aibuilding-top && \
+               cat > /opt/aibuilding-top/docker-compose.production.yml << '"'"'COMPOSE_EOF'"'"'
+services:
+  web:
+    image: ghcr.io/microitem/aibuilding-top:latest
+    container_name: aibuilding-top
+    restart: unless-stopped
+    ports:
+      - "3020:3020"
+    networks:
+      - docker_web
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3020/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "project=aibuilding-top"
+      - "environment=production"
+
+networks:
+  docker_web:
+    external: true
+COMPOSE_EOF
                echo "🔄 Pulling latest image from GHCR..." && \
+               cd /opt/aibuilding-top && \
                docker compose -f docker-compose.production.yml pull && \
                echo "🚀 Restarting service..." && \
                docker compose -f docker-compose.production.yml up -d --force-recreate --remove-orphans && \
