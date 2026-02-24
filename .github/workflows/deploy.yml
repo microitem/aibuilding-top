@@ -55,7 +55,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=true
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -74,6 +74,9 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+      packages: read
 
     steps:
       - name: Checkout code
@@ -117,6 +120,8 @@ jobs:
               'cat > /opt/aibuilding-top/docker-compose.production.yml'
 
       - name: Deploy to VPS1
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ssh -i ~/.ssh/deploy_key \
               -p ${{ secrets.VPS1_PORT }} \
@@ -124,16 +129,17 @@ jobs:
               -o IdentitiesOnly=yes \
               -o UserKnownHostsFile=/dev/null \
               ${{ secrets.VPS1_USER }}@${{ secrets.VPS1_HOST }} \
-              'cd /opt/aibuilding-top && \
-               echo "🔄 Pulling latest image from GHCR..." && \
+              "cd /opt/aibuilding-top && \
+               echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u ${{ github.actor }} --password-stdin && \
+               echo '🔄 Pulling latest image from GHCR...' && \
                docker compose -f docker-compose.production.yml pull && \
-               echo "🚀 Restarting service..." && \
+               echo '🚀 Restarting service...' && \
                docker compose -f docker-compose.production.yml up -d --force-recreate --remove-orphans && \
-               echo "✅ Deploy complete!" && \
+               echo '✅ Deploy complete!' && \
                docker compose -f docker-compose.production.yml ps && \
-               echo "🔍 Health check..." && \
+               echo '🔍 Health check...' && \
                sleep 5 && \
-               curl -sf http://localhost:3020/health && echo " — HEALTHY" || echo "⚠️ Health check failed"'
+               curl -sf http://localhost:3020/health && echo ' — HEALTHY' || echo '⚠️ Health check failed'"
 
       - name: Verify deployment logs
         run: |
